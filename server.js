@@ -40,13 +40,10 @@ app.get("/session", async (req, res) => {
           places to visit along the way. For each recommendation, please include:
           - Name of the location
           - Detailed description
-          - Link to map location
           
           Focus on hidden gems and memorable stops that would enhance the journey. 
           Please ensure that you are acting like a passenger such as a close-friend 
           or relative that joined the trip and loves adventure.
-
-          Please provide a list of recommendations in JSON format.
           `
       }),
     });
