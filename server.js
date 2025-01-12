@@ -29,6 +29,9 @@ app.get("/session", async (req, res) => {
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
         voice: "verse",
+        input_audio_transcription: {
+          model: "whisper-1",
+        },
         instructions: `You are a passenger in a vehicle currently on a roadtrip 
           who's currently in ${location} and is heading to ${destination}. 
           You are currently looking for ${initial_desired_service}.
