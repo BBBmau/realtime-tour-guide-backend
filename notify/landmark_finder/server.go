@@ -29,6 +29,22 @@ func GoogleRouteFinder(request *http.Request) (string, error) {
 		return "", fmt.Errorf("failed to create maps client: %v", err)
 	}
 
+	// Geocode origin
+	origResults, err := c.Geocode(context.Background(), &maps.GeocodingRequest{
+		Address: currentLocation,
+	})
+	if err != nil || len(origResults) == 0 {
+		return "", fmt.Errorf("failed to geocode origin: %v", err)
+	}
+
+	// Geocode destination
+	destResults, err := c.Geocode(context.Background(), &maps.GeocodingRequest{
+		Address: destination,
+	})
+	if err != nil || len(destResults) == 0 {
+		return "", fmt.Errorf("failed to geocode destination: %v", err)
+	}
+
 	// Create directions request
 	r := &maps.DirectionsRequest{
 		Origin:      currentLocation,
@@ -45,10 +61,12 @@ func GoogleRouteFinder(request *http.Request) (string, error) {
 		return "", fmt.Errorf("no routes found")
 	}
 
-	// Build prompt with route information
-	prompt := fmt.Sprintf("As a driver going from %s to %s, here are important points along your route:\n",
-		currentLocation, destination)
+	// Build prompt with route information and coordinates
+	prompt := fmt.Sprintf("As a driver going from %s (%.6f, %.6f) to %s (%.6f, %.6f), here are important points along your route:\n",
+		currentLocation, origResults[0].Geometry.Location.Lat, origResults[0].Geometry.Location.Lng,
+		destination, destResults[0].Geometry.Location.Lat, destResults[0].Geometry.Location.Lng)
 
+	fmt.Println(prompt)
 	// Add route information
 	for _, leg := range routes[0].Legs {
 		prompt += fmt.Sprintf("\nTotal distance: %s\nEstimated duration: %s\n",
@@ -73,6 +91,10 @@ func assistantAudioRequest(nearbyInformationPrompt string) (string, error) {
 		openai.ChatCompletionRequest{
 			Model: openai.GPT4,
 			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    "system",
+					Content: "You are currently on roadtrip helping the driver find unique places, minimum 3, along their route that will provide the driver an unforgettable experience. It should be based on where they are from the given directions, no more than 10 miles away. You should also provide the address of the landmark and the distance from the current location. It should also be straight to the point while also being excited about the places you are finding.",
+				},
 				{
 					Role:    "user",
 					Content: nearbyInformationPrompt,
@@ -117,9 +139,9 @@ func main() {
 		}
 
 		// TODO: the nearbyInformation should be in an audio format that gets sent back to the user in the response.
-		// nearbyInformation, err := assistantAudioRequest(nearbyInformationPrompt)
-
-		w.Write([]byte(nearbyInformationPrompt))
+		nearbyInformation, err := assistantAudioRequest(nearbyInformationPrompt)
+		fmt.Println(nearbyInformation)
+		w.Write([]byte(nearbyInformation))
 	})
 
 	port := "8080"
